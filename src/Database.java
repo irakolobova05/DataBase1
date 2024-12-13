@@ -215,30 +215,38 @@ public class Database{
         }
     }
 
-    public void removeRecordByName(String name) throws IOException{
-        try (RandomAccessFile file = new RandomAccessFile(databaseFile.getName(), "rw")){
+    public void removeRecordByName(String name) throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(databaseFile.getName(), "rw")) {
             String line;
             long pos;
-            int c = 0;
+            boolean found = false;
+
             while ((pos = file.getFilePointer()) < file.length()) {
-                line = file.readLine();  // Чтение строки
-                if (line == null){
+                line = file.readLine();
+                if (line == null) {
                     break; // Если строка пуста, выходим из цикла
                 }
                 Record rec = toRecord(line);
                 if (rec.GetNameApp().equals(name)) {
-                    c+=1;
+                    found = true;
+                    // Удаляем строку
                     long length = file.length();
-                    byte[] restOfFile = new byte[(int)(length - (pos + line.length() + 1))];
+                    byte[] restOfFile = new byte[(int) (length - (pos + line.length() + 1))];
                     file.readFully(restOfFile);
+
+                    // Перемещаем указатель на место удаления
                     file.seek(pos);
                     file.write(restOfFile);
-                    file.setLength(file.getFilePointer());
+                    file.setLength(file.getFilePointer()); // Обновляем длину файла
                     records.remove(rec.GetId());
                     System.out.println("Элемент с name application: " + name + " удален.");
+
+                    // Возвращаемся к началу, чтобы проверить оставшиеся строки
+                    file.seek(pos); // Возвращаемся к позиции, где была удалена строка
                 }
             }
-            if (c==0){
+
+            if (!found) {
                 System.out.println("Элемент с name application: " + name + " не найден.");
             }
         } catch (IOException e) {
@@ -270,21 +278,21 @@ public class Database{
             List<String> ans = new ArrayList<>();
             int c = 0;
             while ((pos = file.getFilePointer()) < file.length()) {
-                line = file.readLine();  // Чтение строки
+                line = file.readLine();
                 if (line == null) {
-                    break; // Если строка пуста, выходим из цикла
+                    break;
                 }
                 Record rec = toRecord(line); // Преобразуем строку в объект Record
-                if (rec.GetNameApp().equals(name)) {  // Проверяем, совпадает ли имя
+                if (rec.GetNameApp().equals(name)) {
                     c += 1;
-                    ans.add(line);  // Добавляем строку в список результатов
+                    ans.add(line);
                 }
             }
             if (c == 0) {
                 System.out.println("Элемент с name application: " + name + " не найден.");
                 return null;
             } else {
-                return ans;  // Возвращаем список найденных записей
+                return ans;
             }
         } catch (IOException e) {
             System.err.println("Ошибка при поиске записи: " + e.getMessage());
